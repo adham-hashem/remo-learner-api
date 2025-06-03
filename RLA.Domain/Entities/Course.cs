@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using static System.Collections.Specialized.BitVector32;
 using System.Reflection.Emit;
 
-namespace ELP.Domain.Entities
+namespace RLA.Domain.Entities
 {
     public class Course
     {

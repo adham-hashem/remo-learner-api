@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 
-namespace ELP.Domain.Entities
+namespace RLA.Domain.Entities
 {
     public class Professor
     {

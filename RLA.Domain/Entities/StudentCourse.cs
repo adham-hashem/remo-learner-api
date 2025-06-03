@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using static System.Collections.Specialized.BitVector32;
 
-namespace ELP.Domain.Entities
+namespace RLA.Domain.Entities
 {
     public class StudentCourse
     {

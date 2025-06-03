@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using System.Text.Json.Serialization;
 
-namespace ELP.Domain.Entities
+namespace RLA.Domain.Entities
 {
     public class ApplicationUser : IdentityUser<Guid>
     {

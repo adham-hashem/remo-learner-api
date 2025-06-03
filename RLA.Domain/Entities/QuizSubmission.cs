@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ELP.Domain.Entities
+namespace RLA.Domain.Entities
 {
     public class QuizSubmission
     {

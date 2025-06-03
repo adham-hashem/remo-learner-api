@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace ELP.Domain.Entities
+namespace RLA.Domain.Entities
 {
     public class ApplicationRole : IdentityRole<Guid>
     {
