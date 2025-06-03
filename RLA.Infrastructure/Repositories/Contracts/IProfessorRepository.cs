@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace RLA.Repositories.Contracts
+namespace RLA.Infrastructure.Repositories.Contracts
 {
     public interface IProfessorRepository
     {
