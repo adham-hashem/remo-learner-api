@@ -14,113 +14,113 @@ using RLA.Infrastructure.Data;
 using System.Text;
 
 namespace RLA.API.Extensions
-{
-    public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection ConfigureServices(this IServiceCollection services, IConfiguration configuration)
+        public static class ServiceCollectionExtensions
         {
-            // Configure logging
-            services.AddLogging(logging =>
+            public static IServiceCollection ConfigureServices(this IServiceCollection services, IConfiguration configuration)
             {
-                logging.AddConsole();
-                logging.SetMinimumLevel(LogLevel.Information);
-            });
+                // Configure logging
+                services.AddLogging(logging =>
+                {
+                    logging.AddConsole();
+                    logging.SetMinimumLevel(LogLevel.Information);
+                });
 
-            // Configure database
-            var connectionString = Environment.GetEnvironmentVariable("RLA_DEV_DATABASE")
+                // Configure database
+                var connectionString = Environment.GetEnvironmentVariable("RLA_DEV_DATABASE")
                 ?? throw new InvalidOperationException("Database connection string 'RLA_DEV_DATABASE' is missing.");
+                Console.WriteLine(new string('#', 20));
+                Console.WriteLine($"Loaded connection string: {connectionString}");
+                Console.WriteLine(new string('#', 20));
+                services.AddDbContext<ElearningPlatformDbContext>(options =>
+                    options.UseSqlServer(connectionString));
 
-            Console.WriteLine(new string('#', 20));
-            Console.WriteLine($"Loaded connection string: {connectionString}");
-            Console.WriteLine(new string('#', 20));
-
-            services.AddDbContext<ElearningPlatformDbContext>(options =>
-                options.UseSqlServer(connectionString));
-
-            // Configure Identity
-            services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
-            {
-                options.Password.RequireDigit = true;
-                options.Password.RequiredLength = 8;
-                options.Password.RequireNonAlphanumeric = true;
-                options.Password.RequireUppercase = true;
-                options.User.RequireUniqueEmail = true;
-            })
-            .AddEntityFrameworkStores<ElearningPlatformDbContext>()
-            .AddDefaultTokenProviders()
-            .AddUserStore<UserStore<ApplicationUser, ApplicationRole, ElearningPlatformDbContext, Guid>>()
-            .AddRoleStore<RoleStore<ApplicationRole, ElearningPlatformDbContext, Guid>>();
-
-            services.AddScoped<UserManager<ApplicationUser>>();
-            services.AddScoped<SignInManager<ApplicationUser>>();
-
-            // Configure JWT Authentication
-            var jwtSecretKey = Environment.GetEnvironmentVariable("RLA_DEV_JWT_SECRET")
-                ?? throw new InvalidOperationException("JWT Secret Key 'RLA_DEV_JWT_SECRET' is missing.");
-
-            services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(options =>
-            {
-                options.RequireHttpsMetadata = false;
-                options.TokenValidationParameters = new TokenValidationParameters
+                // Configure Identity
+                services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
                 {
-                    ValidateIssuer = true,
-                    ValidIssuer = Environment.GetEnvironmentVariable("RLA_DEV_JWT_ISSUER"),
-                    ValidateAudience = false,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
-                };
-                options.MapInboundClaims = false;
-                options.Events = new JwtBearerEvents
+                    options.Password.RequireDigit = true;
+                    options.Password.RequiredLength = 8;
+                    options.Password.RequireNonAlphanumeric = true;
+                    options.Password.RequireUppercase = true;
+                    options.User.RequireUniqueEmail = true;
+                })
+                .AddEntityFrameworkStores<ElearningPlatformDbContext>()
+                .AddDefaultTokenProviders()
+                .AddUserStore<UserStore<ApplicationUser, ApplicationRole, ElearningPlatformDbContext, Guid>>()
+                .AddRoleStore<RoleStore<ApplicationRole, ElearningPlatformDbContext, Guid>>();
+
+                services.AddScoped<UserManager<ApplicationUser>>();
+                services.AddScoped<SignInManager<ApplicationUser>>();
+
+                // Configure JWT Authentication
+                var jwtSecretKey = Environment.GetEnvironmentVariable("RLA_DEV_JWT_SECRET")
+                    ?? throw new InvalidOperationException("JWT Secret Key 'RLA_DEV_JWT_SECRET' is missing.");
+
+                services.AddAuthentication(options =>
                 {
-                    OnAuthenticationFailed = context =>
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(options =>
+                {
+                    options.RequireHttpsMetadata = false;
+                    options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                        logger.LogError(context.Exception, "Authentication failed. Token: {Token}", context.Request.Headers["Authorization"]!);
-                        return Task.CompletedTask;
-                    },
-                    OnTokenValidated = context =>
+                        ValidateIssuer = true,
+                        ValidIssuer = Environment.GetEnvironmentVariable("RLA_DEV_JWT_ISSUER"),
+                        ValidateAudience = false,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
+                    };
+                    options.MapInboundClaims = false;
+                    options.Events = new JwtBearerEvents
                     {
-                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                        logger.LogInformation("Token validated successfully for user: {User}", context.Principal?.Identity?.Name);
-                        return Task.CompletedTask;
-                    }
-                };
-            });
+                        OnAuthenticationFailed = context =>
+                        {
+                            var loggerFactory = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>();
+                            var logger = loggerFactory.CreateLogger("RLA.API.Extensions.ServiceCollectionExtensions");
+                            logger.LogError(context.Exception, "Authentication failed. Token: {Token}", context.Request.Headers["Authorization"]!);
+                            return Task.CompletedTask;
+                        },
+                        OnTokenValidated = context =>
+                        {
+                            var loggerFactory = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>();
+                            var logger = loggerFactory.CreateLogger("RLA.API.Extensions.ServiceCollectionExtensions");
+                            logger.LogInformation("Token validated successfully for user: {User}", context.Principal?.Identity?.Name);
+                            return Task.CompletedTask;
+                        }
+                    };
+                });
 
-            // Configure Authorization and Controllers
-            services.AddAuthorization();
-            services.AddControllers(options =>
+                // Configure Authorization and Controllers
+                services.AddAuthorization();
+                services.AddControllers(options =>
+                {
+                    options.Filters.Add(new ProducesAttribute("application/json"));
+                    options.Filters.Add(new ConsumesAttribute("application/json"));
+                    var policy = new AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .Build();
+                    options.Filters.Add(new AuthorizeFilter(policy));
+                })
+                .AddXmlSerializerFormatters();
+
+                services.AddEndpointsApiExplorer();
+                ConfigureCors(services);
+
+                return services;
+            }
+
+            private static void ConfigureCors(IServiceCollection services)
             {
-                options.Filters.Add(new ProducesAttribute("application/json"));
-                options.Filters.Add(new ConsumesAttribute("application/json"));
-                var policy = new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .Build();
-                options.Filters.Add(new AuthorizeFilter(policy));
-            })
-            .AddXmlSerializerFormatters();
-
-            services.AddEndpointsApiExplorer();
-            ConfigureCors(services);
-
-            return services;
-        }
-
-        private static void ConfigureCors(IServiceCollection services)
-        {
-            services.AddCors(options =>
-            {
-                options.AddPolicy("AllowAll", policy =>
-                    policy.AllowAnyOrigin()
-                          .AllowAnyMethod()
-                          .AllowAnyHeader());
-            });
+                services.AddCors(options =>
+                {
+                    options.AddPolicy("AllowAll", policy =>
+                        policy.AllowAnyOrigin()
+                              .AllowAnyMethod()
+                              .AllowAnyHeader());
+                });
+            }
         }
     }
-}

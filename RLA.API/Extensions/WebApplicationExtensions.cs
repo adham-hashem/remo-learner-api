@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Logging;
 
-namespace RLA.API.Extensions
+namespace RLA.Web.Extensions
 {
     public static class WebApplicationExtensions
     {
         public static WebApplication ConfigureMiddleware(this WebApplication app)
         {
-            var logger = app.Services.GetRequiredService<ILogger<Program>>();
+            var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+            var logger = loggerFactory.CreateLogger("RLA.Web.Extensions.WebApplicationExtensions");
 
             if (app.Environment.IsDevelopment())
             {
