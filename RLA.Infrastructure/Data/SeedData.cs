@@ -12,7 +12,7 @@ namespace RLA.Infrastructure.Data
 {
     public static class SeedData
     {
-        public static async Task Initialize(IServiceProvider serviceProvider)
+        public static async Task InitializeAsync(IServiceProvider serviceProvider)
         {
             using var context = new ElearningPlatformDbContext(
                 serviceProvider.GetRequiredService<DbContextOptions<ElearningPlatformDbContext>>());
@@ -20,23 +20,46 @@ namespace RLA.Infrastructure.Data
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
             var logger = loggerFactory.CreateLogger("RLA.Infrastructure.Data.SeedData");
 
-            // Ensure database is created
+            // Ensure database configuration is created
             await context.Database.EnsureCreatedAsync();
 
             // Seed Users (Admin)
             if (!context.Users.Any())
             {
                 logger.LogInformation("Seeding admin user...");
+                var adminUsername = Environment.GetEnvironmentVariable("ADMIN_USERNAME");
+                var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+                var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? adminUsername; // Fallback to username if email not set
+
+                if (string.IsNullOrWhiteSpace(adminUsername))
+                {
+                    logger.LogError("ADMIN_USERNAME environment variable is missing or empty.");
+                    throw new Exception("Admin user seeding failed: Missing ADMIN_USERNAME.");
+                }
+
+                if (string.IsNullOrWhiteSpace(adminPassword))
+                {
+                    logger.LogError("ADMIN_PASSWORD environment variable is missing or empty.");
+                    throw new Exception("Admin user seeding failed: Missing ADMIN_PASSWORD.");
+                }
+
+                if (string.IsNullOrWhiteSpace(adminEmail) || !adminEmail.Contains("@"))
+                {
+                    logger.LogError("ADMIN_EMAIL environment variable is missing, empty, or invalid: {Email}", adminEmail);
+                    throw new Exception("Admin user seeding failed: Invalid or missing ADMIN_EMAIL.");
+                }
+
                 var adminUser = new ApplicationUser
                 {
                     FullName = "admin1",
                     UniversityId = "ADMIN-001",
-                    UserName = Environment.GetEnvironmentVariable("ADMIN_USERNAME"),
+                    UserName = adminUsername,
+                    Email = adminEmail,
                     PhoneNumber = "987-654-3210",
                     EmailConfirmed = true
                 };
 
-                var result = await userManager.CreateAsync(adminUser, Environment.GetEnvironmentVariable("ADMIN_PASSWORD")!);
+                var result = await userManager.CreateAsync(adminUser, adminPassword);
                 if (!result.Succeeded)
                 {
                     logger.LogError("Failed to create admin user: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
@@ -58,10 +81,10 @@ namespace RLA.Infrastructure.Data
                 }
             }
 
-            // Seed Levels (optional, kept for potential future use)
+            // Seed Levels
             if (!context.Levels.Any())
             {
-                var level = new Level { Id = Guid.NewGuid() }; // Minimal Level entity
+                var level = new Level { Id = Guid.NewGuid() };
                 context.Levels.Add(level);
                 await context.SaveChangesAsync();
                 logger.LogInformation("Seeded level with ID: {LevelId}", level.Id);
@@ -80,45 +103,6 @@ namespace RLA.Infrastructure.Data
                 await context.SaveChangesAsync();
                 logger.LogInformation("Seeded term with ID: {TermId}", term.Id);
             }
-
-            //// Seed Courses (commented out since it requires a Professor)
-            //if (!context.Courses.Any())
-            //{
-            //    var professor = await context.Professors.FirstOrDefaultAsync();
-            //    if (professor == null)
-            //    {
-            //        logger.LogError("No professor found in the database for course seeding.");
-            //        throw new Exception("No professor exists for course seeding.");
-            //    }
-
-            //    var level = await context.Levels.FirstOrDefaultAsync();
-            //    var term = await context.Terms.FirstOrDefaultAsync();
-
-            //    if (level == null || term == null)
-            //    {
-            //        logger.LogError("Required entities (Level or Term) not found for course seeding.");
-            //        throw new Exception("Missing required entities for course seeding.");
-            //    }
-
-            //    logger.LogInformation("Seeding course with ProfessorId: {ProfessorId}", professor.Id);
-            //    var course = new Course
-            //    {
-            //        Name = "Introduction to Programming",
-            //        Code = "CS101",
-            //        Overview = "Basic programming concepts",
-            //        DayOfWeek = DayOfWeek.Monday,
-            //        Time = TimeOnly.FromDateTime(DateTime.Now),
-            //        Location = "Room 101",
-            //        CreditHours = 3,
-            //        LevelId = level.Id,
-            //        ProfessorId = professor.Id,
-            //        TermId = term.Id
-            //    };
-
-            //    context.Courses.Add(course);
-            //    await context.SaveChangesAsync();
-            //    logger.LogInformation("Seeded course with ID: {CourseId}, ProfessorId: {ProfessorId}", course.Id, course.ProfessorId);
-            //}
         }
     }
 }

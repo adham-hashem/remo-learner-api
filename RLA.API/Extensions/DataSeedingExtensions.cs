@@ -24,7 +24,7 @@ namespace RLA.API.Extensions
                 logger.LogInformation("Roles created successfully.");
 
                 logger.LogInformation("Starting data seeding...");
-                await SeedData.Initialize(services);
+                await SeedData.InitializeAsync(services); // Changed to InitializeAsync
                 logger.LogInformation("Data seeding completed successfully.");
             }
             catch (Exception ex)
@@ -38,7 +38,7 @@ namespace RLA.API.Extensions
         {
             var roleManager = services.GetRequiredService<RoleManager<ApplicationRole>>();
             var loggerFactory = services.GetRequiredService<ILoggerFactory>();
-            var logger = loggerFactory.CreateLogger("RLA.Web.Extensions.DataSeedingExtensions"); // Custom category
+            var logger = loggerFactory.CreateLogger("RLA.Web.Extensions.DataSeedingExtensions");
             string[] roles = { "Admin", "User", "Professor", "Student", "Assistant" };
 
             foreach (var role in roles)
