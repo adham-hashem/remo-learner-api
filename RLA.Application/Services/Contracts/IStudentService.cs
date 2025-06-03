@@ -1,5 +1,5 @@
 using RLA.Application.DTOs.UserDTOs;
-using RLA.Application.Entities;
+using RLA.Domain.Entities;
 using RLA.Domain.Entities;
 using System;
 using System.Collections.Generic;
