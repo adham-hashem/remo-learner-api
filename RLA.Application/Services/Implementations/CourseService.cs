@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-
 namespace RLA.Application.Services.Implementations
 {
     public class CourseService : ICourseService
