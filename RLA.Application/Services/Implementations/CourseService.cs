@@ -29,7 +29,7 @@ namespace RLA.Application.Services.Implementations
 
         public async Task<Course> CreateCourseAsync(CreateCourseDto courseDto)
         {
-            var professorExists = await _professorRepository.GetByIdAsync(courseDto.ProfessorId);
+            var professorExists = await _professorRepository.GetByUserIdAsync(courseDto.ProfessorId);
             if (professorExists == null)
                 throw new Exception($"No professor found with ID {courseDto.ProfessorId}.");
 
