@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
+
 namespace RLA.Application.DTOs.AuthDTOs
 {
     /// <summary>
