@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ELP.Application.DTOs.LevelsDtos
+namespace RLA.Application.DTOs.LevelsDtos
 {
     /// <summary>
     /// DTO for creating or updating an academic level.
