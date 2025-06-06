@@ -96,7 +96,8 @@ namespace RLA.Application.Services.Implementations
                 throw new Exception("User not found.");
 
             var hasCourses = await _studentRepository.GetByUserIdAsync(userId);
-            if (hasCourses != null && await _studentRepository.GetByCourseIdAsync(userId).AnyAsync())
+            var studentsInCourses = await _studentRepository.GetByCourseIdAsync(userId);
+            if (hasCourses != null && studentsInCourses.Any())
                 throw new Exception("Cannot delete student because they are registered in one or more courses.");
 
             await _studentRepository.DeleteAsync(userId);

@@ -20,6 +20,7 @@ namespace RLA.Application.DTOs.CoursesDTOs
         public string Overview { get; set; }
 
         [Required(ErrorMessage = "Day of week is required.")]
+        [RegularExpression(@"^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$", ErrorMessage = "Invalid day of week.")]
         public string DayOfWeek { get; set; }
 
         [Required(ErrorMessage = "Time is required.")]

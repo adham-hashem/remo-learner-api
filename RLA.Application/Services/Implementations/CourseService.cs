@@ -41,13 +41,19 @@ namespace RLA.Application.Services.Implementations
             if (levelExists == null)
                 throw new Exception($"No level found with ID {courseDto.LevelId}.");
 
+            if (!Enum.TryParse<DayOfWeek>(courseDto.DayOfWeek, true, out var dayOfWeek))
+                throw new ArgumentException($"Invalid day of week: {courseDto.DayOfWeek}");
+
+            if (!TimeOnly.TryParse(courseDto.Time, out var time))
+                throw new ArgumentException($"Invalid time format: {courseDto.Time}");
+
             var course = new Course
             {
                 Name = courseDto.Name,
                 Code = courseDto.Code,
                 Overview = courseDto.Overview,
-                DayOfWeek = courseDto.DayOfWeek,
-                Time = courseDto.Time,
+                DayOfWeek = dayOfWeek,
+                Time = time,
                 Location = courseDto.Location,
                 CreditHours = courseDto.CreditHours,
                 LevelId = courseDto.LevelId,
@@ -80,11 +86,17 @@ namespace RLA.Application.Services.Implementations
             if (course == null)
                 throw new Exception("Course not found.");
 
+            if (!Enum.TryParse<DayOfWeek>(courseDto.DayOfWeek, true, out var dayOfWeek))
+                throw new ArgumentException($"Invalid day of week: {courseDto.DayOfWeek}");
+
+            if (!TimeOnly.TryParse(courseDto.Time, out var time))
+                throw new ArgumentException($"Invalid time format: {courseDto.Time}");
+
             course.Name = courseDto.Name;
             course.Code = courseDto.Code;
             course.Overview = courseDto.Overview;
-            course.DayOfWeek = courseDto.DayOfWeek;
-            course.Time = courseDto.Time;
+            course.DayOfWeek = dayOfWeek;
+            course.Time = time;
             course.Location = courseDto.Location;
             course.CreditHours = courseDto.CreditHours;
             course.LevelId = courseDto.LevelId;
