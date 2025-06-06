@@ -1,4 +1,4 @@
-namespace ELP.Application.DTOs
+namespace RLA.Application.DTOs
 {
     /// <summary>
     /// DTO for authentication response, including JWT token and user details.
