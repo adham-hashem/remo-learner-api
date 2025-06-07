@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace RLA.Application.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    // [Authorize(Roles = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class LevelsController : ControllerBase
