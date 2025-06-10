@@ -105,7 +105,7 @@ namespace RLA.API.Controllers
                 FullName = registerDto.FullName,
                 BirthDate = registerDto.BirthDate,
                 Address = registerDto.Address,
-                EmailConfirmed = true // Should implement proper email confirmation in production
+                EmailConfirmed = true
             };
 
             var result = await _userManager.CreateAsync(user, registerDto.Password);
