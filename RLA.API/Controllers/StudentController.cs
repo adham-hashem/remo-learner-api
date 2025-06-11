@@ -12,8 +12,8 @@ using Microsoft.AspNetCore.Identity;
 
 namespace RLA.API.Controllers
 {
-    [Route("api/students")]
     [ApiController]
+    [Route("api/students")]
     // [Authorize(Roles = "Student,Admin")]
     public class StudentController : ControllerBase
     {
