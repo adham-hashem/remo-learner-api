@@ -14,7 +14,7 @@ namespace RLA.API.Controllers
 {
     [Route("api/students")]
     [ApiController]
-    [Authorize(Roles = "Student,Admin")]
+    // [Authorize(Roles = "Student,Admin")]
     public class StudentController : ControllerBase
     {
         private readonly IStudentService _studentService;
