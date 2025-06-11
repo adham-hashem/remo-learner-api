@@ -13,6 +13,8 @@ namespace RLA.Application.Services.Contracts
         Task<Student> GetStudentByUserIdAsync(Guid userId);
         Task<IEnumerable<Student>> GetAllStudentsAsync();
         Task<IEnumerable<Student>> GetStudentsByCourseIdAsync(Guid courseId);
+        Task<IEnumerable<Course>> GetEnrolledCoursesAsync(Guid userId);
+        Task EnrollInCourseAsync(Guid userId, Guid courseId);
         Task UpdateStudentAsync(Guid userId, UpdateUserDto updateDto);
         Task DeleteStudentAsync(Guid userId);
     }
