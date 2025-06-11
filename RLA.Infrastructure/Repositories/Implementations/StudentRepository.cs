@@ -41,6 +41,43 @@ namespace RLA.Infrastructure.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Course>> GetEnrolledCoursesAsync(Guid userId)
+        {
+            return await _context.StudentCourses
+                .Where(sc => sc.Student.UserId == userId)
+                .Include(sc => sc.Course)
+                .Select(sc => sc.Course)
+                .ToListAsync();
+        }
+
+        public async Task EnrollInCourseAsync(Guid userId, Guid courseId)
+        {
+            var student = await _context.Students
+                .FirstOrDefaultAsync(s => s.UserId == userId);
+            if (student == null)
+                throw new Exception("Student not found.");
+
+            var isEnrolled = await _context.StudentCourses
+                .AnyAsync(sc => sc.Student.UserId == userId && sc.CourseId == courseId);
+            if (isEnrolled)
+                throw new Exception("Student is already enrolled in this course.");
+
+            var studentCourse = new StudentCourse
+            {
+                StudentId = student.Id,
+                CourseId = courseId
+            };
+
+            await _context.StudentCourses.AddAsync(studentCourse);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> HasEnrolledCoursesAsync(Guid userId)
+        {
+            return await _context.StudentCourses
+                .AnyAsync(sc => sc.Student.UserId == userId);
+        }
+
         public async Task AddAsync(Student student)
         {
             await _context.Students.AddAsync(student);
