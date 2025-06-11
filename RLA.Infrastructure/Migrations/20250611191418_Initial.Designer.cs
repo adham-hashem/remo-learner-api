@@ -12,7 +12,7 @@ using RLA.Infrastructure.Data;
 namespace RLA.Infrastructure.Migrations
 {
     [DbContext(typeof(ElearningPlatformDbContext))]
-    [Migration("20250603035621_Initial")]
+    [Migration("20250611191418_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -240,11 +240,20 @@ namespace RLA.Infrastructure.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiryTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
+
+                    b.Property<string>("TwoFactorSecret")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UniversityId")
                         .IsRequired()

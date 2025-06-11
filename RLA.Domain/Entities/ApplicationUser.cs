@@ -29,7 +29,11 @@ namespace RLA.Domain.Entities
         //[ForeignKey(nameof(LevelId))]
         //public Level Level { get; set; }
 
-        // Removed Role property; use Identity roles instead
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
+
+        public string? TwoFactorSecret { get; set; }
+
         public ICollection<Student> Students { get; set; } = new List<Student>();
         public ICollection<Professor> Professors { get; set; } = new List<Professor>();
         public ICollection<Assistant> Assistants { get; set; } = new List<Assistant>();
