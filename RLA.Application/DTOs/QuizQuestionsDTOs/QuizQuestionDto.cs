@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace ELP.Application.DTOs.QuizQuestionsDTOs
+namespace RLA.Application.DTOs.QuizQuestionsDTOs
 {
     /// <summary>
     /// DTO for a quiz question, including options and correct answer.
