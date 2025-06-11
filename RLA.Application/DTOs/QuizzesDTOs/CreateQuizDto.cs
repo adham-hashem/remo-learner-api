@@ -1,4 +1,4 @@
-using RLA.Application.Application.DTOs.QuizQuestionsDTOs;
+using RLA.Application.DTOs.QuizQuestionsDTOs;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
