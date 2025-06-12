@@ -5,7 +5,7 @@ namespace RLA.Application.DTOs.AuthDTOs
     /// <summary>
     /// DTO for resetting a user's password.
     /// </summary>
-    public class ResetPasswordDTO
+    public class ResetPasswordDto
     {
         [Required(ErrorMessage = "Email is required.")]
         [EmailAddress(ErrorMessage = "Invalid email format.")]
