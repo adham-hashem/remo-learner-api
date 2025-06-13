@@ -9,5 +9,6 @@ namespace RLA.Application.DTOs
         public Guid UserId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public IEnumerable<string> Roles { get; set; } = new List<string>();
+        public string? RefreshToken { get; set; }
     }
 }
