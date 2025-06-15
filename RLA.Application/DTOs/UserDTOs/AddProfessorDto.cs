@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RLA.Application.DTOs.UserDTOs
 {
@@ -25,5 +26,16 @@ namespace RLA.Application.DTOs.UserDTOs
 
         [Phone(ErrorMessage = "Invalid phone number format.")]
         public string PhoneNumber { get; set; }
+
+        [Required]
+        [StringLength(14, MinimumLength = 14, ErrorMessage = "National ID must be exactly 14 digits.")]
+        [RegularExpression(@"^\d{14}$", ErrorMessage = "National ID must be a 14-digit number.")]
+        public string NationalId { get; set; } = string.Empty;
+
+        [Column(TypeName = "date")]
+        public DateTime? BirthDate { get; set; }
+
+        [StringLength(200, ErrorMessage = "Address cannot exceed 200 characters.")]
+        public string Address { get; set; } = string.Empty;
     }
 }
