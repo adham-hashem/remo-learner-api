@@ -1,6 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using RLA.Application.DTOs;
 using RLA.Application.DTOs.AuthDTOs;
 using RLA.Application.Services.Contracts;
 using RLA.Domain.Entities;
@@ -9,7 +9,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using RLA.Infrastructure.Repositories.Contracts;
 
 namespace RLA.API.Controllers
 {
@@ -17,29 +16,21 @@ namespace RLA.API.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly IJwtTokenService _jwtTokenService;
+        private readonly IAuthService _authService;
+        private readonly IStudentService _studentService;
+        private readonly IProfessorService _professorService;
         private readonly ILogger<AuthController> _logger;
 
         public AuthController(
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager,
-            IJwtTokenService jwtTokenService,
+            IAuthService authService,
+            IStudentService studentService,
+            IProfessorService professorService,
             ILogger<AuthController> logger)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
-            _jwtTokenService = jwtTokenService;
+            _authService = authService;
+            _studentService = studentService;
+            _professorService = professorService;
             _logger = logger;
-        }
-
-        private bool IsPasswordComplex(string password)
-        {
-            if (string.IsNullOrEmpty(password) || password.Length < 8)
-                return false;
-
-            return Regex.IsMatch(password, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$");
         }
 
         private IActionResult ErrorResponse(string message)
@@ -53,34 +44,17 @@ namespace RLA.API.Controllers
             if (!ModelState.IsValid)
                 return ErrorResponse("Invalid input data");
 
-            if (string.IsNullOrEmpty(loginDto.Email) || string.IsNullOrEmpty(loginDto.Password))
-                return ErrorResponse("Email and password are required");
-
-            var user = await _userManager.FindByEmailAsync(loginDto.Email);
-            if (user == null)
+            try
             {
-                _logger.LogWarning($"Failed login attempt for email: {loginDto.Email}");
+                var result = await _authService.LoginAsync(loginDto);
+                _logger.LogInformation($"Successful login for user: {result.UserId}");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Failed login attempt for email: {loginDto.Email}. Error: {ex.Message}");
                 return ErrorResponse("Invalid email or password");
             }
-
-            var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
-            if (!result.Succeeded)
-            {
-                _logger.LogWarning($"Failed login attempt for user: {user.Id}");
-                return ErrorResponse("Invalid email or password");
-            }
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var token = _jwtTokenService.GenerateToken(user, roles);
-
-            _logger.LogInformation($"Successful login for user: {user.Id}");
-            return Ok(new AuthResponseDto
-            {
-                Token = token,
-                UserId = user.Id,
-                FullName = user.FullName,
-                Roles = roles
-            });
         }
 
         [HttpPost("register/student")]
@@ -89,61 +63,29 @@ namespace RLA.API.Controllers
             if (!ModelState.IsValid)
                 return ErrorResponse("Invalid input data");
 
-            if (!IsPasswordComplex(registerDto.Password))
-                return ErrorResponse("Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character");
-
-            var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
-            if (existingUser != null)
-                return ErrorResponse("Email is already in use");
-
-            var user = new ApplicationUser
-            {
-                UserName = registerDto.Email,
-                Email = registerDto.Email,
-                NationalId = registerDto.NationalId,
-                UniversityId = registerDto.UniversityId,
-                FullName = registerDto.FullName,
-                BirthDate = registerDto.BirthDate,
-                Address = registerDto.Address,
-                EmailConfirmed = true
-            };
-
-            var result = await _userManager.CreateAsync(user, registerDto.Password);
-            if (!result.Succeeded)
-            {
-                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                _logger.LogError($"Failed to create student user: {errors}");
-                return ErrorResponse($"Failed to create user: {errors}");
-            }
-
-            await _userManager.AddToRoleAsync(user, "Student");
-
-            var student = new Student { UserId = user.Id };
             try
             {
-                var studentRepository = HttpContext.RequestServices.GetService<IStudentRepository>();
-                if (studentRepository == null)
-                    throw new InvalidOperationException("Student repository not registered");
+                var user = await _authService.RegisterStudentAsync(registerDto);
+                await _studentService.CreateStudentAsync(new Application.DTOs.UserDTOs.AddStudentDto
+                {
+                    Email = registerDto.Email,
+                    FullName = registerDto.FullName,
+                    UniversityId = registerDto.UniversityId,
+                    Password = registerDto.Password,
+                    NationalId = registerDto.NationalId,
+                    BirthDate = registerDto.BirthDate,
+                    Address = registerDto.Address
+                });
 
-                await studentRepository.AddAsync(student);
-                await _userManager.AddToRoleAsync(user, "Student");
-
-                var token = _jwtTokenService.GenerateToken(user, new[] { "Student" });
+                var authResponse = await _authService.GenerateAuthResponseAsync(user, new[] { "Student" });
                 _logger.LogInformation($"Successfully registered student: {user.Id}");
 
-                return CreatedAtAction(nameof(Login), new AuthResponseDto
-                {
-                    Token = token,
-                    UserId = user.Id,
-                    FullName = user.FullName,
-                    Roles = new[] { "Student" }
-                });
+                return CreatedAtAction(nameof(Login), authResponse);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Failed to create student record for user: {user.Id}");
-                await _userManager.DeleteAsync(user);
-                return ErrorResponse($"Failed to create student record: {ex.Message}");
+                _logger.LogError(ex, $"Failed to register student for email: {registerDto.Email}");
+                return ErrorResponse($"Failed to register student: {ex.Message}");
             }
         }
 
@@ -153,124 +95,168 @@ namespace RLA.API.Controllers
             if (!ModelState.IsValid)
                 return ErrorResponse("Invalid input data");
 
-            if (!IsPasswordComplex(registerDto.Password))
-                return ErrorResponse("Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character");
-
-            var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
-            if (existingUser != null)
-                return ErrorResponse("Email is already in use");
-
-            var user = new ApplicationUser
-            {
-                UserName = registerDto.Email,
-                Email = registerDto.Email,
-                NationalId = registerDto.NationalId,
-                UniversityId = registerDto.UniversityId,
-                FullName = registerDto.FullName,
-                BirthDate = registerDto.BirthDate,
-                Address = registerDto.Address,
-                EmailConfirmed = true
-            };
-
-            var result = await _userManager.CreateAsync(user, registerDto.Password);
-            if (!result.Succeeded)
-            {
-                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                _logger.LogError($"Failed to create professor user: {errors}");
-                return ErrorResponse($"Failed to create user: {errors}");
-            }
-
-            await _userManager.AddToRoleAsync(user, "Professor");
-
-            var professor = new Professor { UserId = user.Id };
             try
             {
-                var professorRepository = HttpContext.RequestServices.GetService<IProfessorRepository>();
-                if (professorRepository == null)
-                    throw new InvalidOperationException("Professor repository not registered");
+                var user = await _authService.RegisterProfessorAsync(registerDto);
+                await _professorService.CreateProfessorAsync(new Application.DTOs.UserDTOs.AddProfessorDto
+                {
+                    Email = registerDto.Email,
+                    FullName = registerDto.FullName,
+                    UniversityId = registerDto.UniversityId,
+                    Password = registerDto.Password,
+                    NationalId = registerDto.NationalId,
+                    BirthDate = registerDto.BirthDate,
+                    Address = registerDto.Address
+                });
 
-                await professorRepository.AddAsync(professor);
-
-                var token = _jwtTokenService.GenerateToken(user, new[] { "Professor" });
+                var authResponse = await _authService.GenerateAuthResponseAsync(user, new[] { "Professor" });
                 _logger.LogInformation($"Successfully registered professor: {user.Id}");
 
-                return CreatedAtAction(nameof(Login), new AuthResponseDto
-                {
-                    Token = token,
-                    UserId = user.Id,
-                    FullName = user.FullName,
-                    Roles = new[] { "Professor" }
-                });
+                return CreatedAtAction(nameof(Login), authResponse);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Failed to create professor record for user: {user.Id}");
-                await _userManager.DeleteAsync(user);
-                return ErrorResponse($"Failed to create professor record: {ex.Message}");
+                _logger.LogError(ex, $"Failed to register professor for email: {registerDto.Email}");
+                return ErrorResponse($"Failed to register professor: {ex.Message}");
             }
         }
 
-        //[HttpPost("register/assistant")]
-        //public async Task<IActionResult> RegisterAssistant([FromBody] RegisterAssistantDto registerDto)
-        //{
-        //    if (!ModelState.IsValid)
-        //        return ErrorResponse("Invalid input data");
+        [HttpPost("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailDto confirmDto)
+        {
+            try
+            {
+                await _authService.ConfirmEmailAsync(confirmDto.UserId, confirmDto.Token);
+                _logger.LogInformation($"Email confirmed for user: {confirmDto.UserId}");
+                return Ok(new { Message = "Email confirmed successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to confirm email for user: {confirmDto.UserId}");
+                return ErrorResponse($"Failed to confirm email: {ex.Message}");
+            }
+        }
 
-        //    if (!IsPasswordComplex(registerDto.Password))
-        //        return ErrorResponse("Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character");
+        [HttpPost("enable-2fa")]
+        [Authorize]
+        public async Task<IActionResult> EnableTwoFactorAuthentication()
+        {
+            try
+            {
+                var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!Guid.TryParse(userIdString, out var userId))
+                    return ErrorResponse("User not authenticated");
 
-        //    var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
-        //    if (existingUser != null)
-        //        return ErrorResponse("Email is already in use");
+                var setupInfo = await _authService.EnableTwoFactorAsync(userId);
+                _logger.LogInformation($"2FA setup initiated for user: {userId}");
+                return Ok(setupInfo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to enable 2FA for user");
+                return ErrorResponse($"Failed to enable 2FA: {ex.Message}");
+            }
+        }
 
-        //    var user = new ApplicationUser
-        //    {
-        //        UserName = registerDto.Email,
-        //        Email = registerDto.Email,
-        //        NationalId = registerDto.NationalId,
-        //        UniversityId = registerDto.UniversityId,
-        //        FullName = registerDto.FullName,
-        //        BirthDate = registerDto.BirthDate,
-        //        Address = registerDto.Address,
-        //        EmailConfirmed = true
-        //    };
+        [HttpPost("verify-2fa")]
+        public async Task<IActionResult> VerifyTwoFactor([FromBody] VerifyTwoFactorDto verifyDto)
+        {
+            try
+            {
+                var result = await _authService.VerifyTwoFactorAsync(verifyDto.Email, verifyDto.Code);
+                _logger.LogInformation($"Successful 2FA verification for user: {result.UserId}");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed 2FA verification for email: {verifyDto.Email}");
+                return ErrorResponse($"Invalid 2FA code: {ex.Message}");
+            }
+        }
 
-        //    var result = await _userManager.CreateAsync(user, registerDto.Password);
-        //    if (!result.Succeeded)
-        //    {
-        //        var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-        //        _logger.LogError($"Failed to create assistant user: {errors}");
-        //        return ErrorResponse($"Failed to create user: {errors}");
-        //    }
+        [HttpPost("external-login")]
+        public async Task<IActionResult> ExternalLogin([FromBody] ExternalLoginDto externalDto)
+        {
+            try
+            {
+                var result = await _authService.ExternalLoginAsync(externalDto);
+                _logger.LogInformation($"Successful external login for user: {result.UserId}");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed external login for provider: {externalDto.Provider}");
+                return ErrorResponse($"Failed external login: {ex.Message}");
+            }
+        }
 
-        //    await _userManager.AddToRoleAsync(user, "Assistant");
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDTO forgotDto)
+        {
+            try
+            {
+                await _authService.ForgotPasswordAsync(forgotDto.Email);
+                _logger.LogInformation($"Password reset initiated for email: {forgotDto.Email}");
+                return Ok(new { Message = "Password reset email sent" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to initiate password reset for email: {forgotDto.Email}");
+                return ErrorResponse($"Failed to initiate password reset: {ex.Message}");
+            }
+        }
 
-        //    var assistant = new Assistant { UserId = user.Id };
-        //    try
-        //    {
-        //        var assistantRepository = HttpContext.RequestServices.GetService<IAssistantRepository>();
-        //        if (assistantRepository == null)
-        //            throw new InvalidOperationException("Assistant repository not registered");
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetDto)
+        {
+            try
+            {
+                await _authService.ResetPasswordAsync(resetDto);
+                _logger.LogInformation($"Password reset successful for email: {resetDto.Email}");
+                return Ok(new { Message = "Password reset successful" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to reset password for email: {resetDto.Email}");
+                return ErrorResponse($"Failed to reset password: {ex.Message}");
+            }
+        }
 
-        //        await assistantRepository.AddAsync(assistant);
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto refreshDto)
+        {
+            try
+            {
+                var result = await _authService.RefreshTokenAsync(refreshDto.RefreshToken);
+                _logger.LogInformation($"Token refreshed for user: {result.UserId}");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to refresh token");
+                return ErrorResponse($"Failed to refresh token: {ex.Message}");
+            }
+        }
 
-        //        var token = _jwtTokenService.GenerateToken(user, new[] { "Assistant" });
-        //        _logger.LogInformation($"Successfully registered assistant: {user.Id}");
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            try
+            {
+                var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!Guid.TryParse(userIdString, out var userId))
+                    return ErrorResponse("User not authenticated");
 
-        //        return CreatedAtAction(nameof(Login), new AuthResponseDto
-        //        {
-        //            Token = token,
-        //            UserId = user.Id,
-        //            FullName = user.FullName,
-        //            Roles = new[] { "Assistant" }
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, $"Failed to create assistant record for user: {user.Id}");
-        //        await _userManager.DeleteAsync(user);
-        //        return ErrorResponse($"Failed to create assistant record: {ex.Message}");
-        //    }
-        //}
+                await _authService.LogoutAsync(userId);
+                _logger.LogInformation($"User logged out: {userId}");
+                return Ok(new { Message = "Logged out successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to logout user");
+                return ErrorResponse($"Failed to logout: {ex.Message}");
+            }
+        }
     }
 }
