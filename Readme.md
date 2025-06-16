@@ -12,7 +12,7 @@ It includes robust features such as secure user authentication, course managemen
 ### 🔐 Authentication & Security
 - JWT-based authentication with refresh tokens  
 - Role-based registration (Student, Professor, Assistant)  
-- Two-Factor Authentication (TOTP via authenticator apps)  
+- Two-Factor Authentication 
 - OAuth integration (e.g., Google)  
 - Email confirmation and password reset  
 
