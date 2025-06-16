@@ -10,24 +10,70 @@ It includes robust features such as secure user authentication, course managemen
 ## ✨ Key Features
 
 ### 🔐 Authentication & Security
-
 - JWT-based authentication with refresh tokens  
 - Role-based registration (Student, Professor, Assistant)  
 - Two-Factor Authentication (TOTP via authenticator apps)  
 - OAuth integration (e.g., Google)  
 - Email confirmation and password reset  
 
+---
+
+## 👨‍🏫 Professor Features
+
+### 📘 Course Management
+- View all courses assigned to the professor  
+- View course details including:
+  - Day of the week
+  - Time
+  - Location
+  - Number of materials, quizzes, and discussions  
+
 ### 🎓 Student Management
+- View enrolled students in a specific course  
+- See each student’s name and final grade for that course  
 
-- View and update student profiles  
-- Enroll in and view enrolled courses  
+### 📚 Material Management
+- Upload lecture materials to a course  
+- Retrieve a specific material by ID  
+- List all materials for a course with:
+  - Week number  
+  - Lecture title and description  
+  - File path  
 
-### 🏗️ Architecture
+### 📝 Quiz Management
+- Create new quizzes for a course  
+- Retrieve quiz details by ID  
+- List all quizzes in a course with:
+  - Title  
+  - Max score  
+  - Term  
+  - Question count  
 
+### 💬 Discussion Management
+- Start new discussions in a course  
+- Retrieve a specific discussion by ID  
+- List all discussions for a course with:
+  - Professor’s name  
+  - Message  
+  - Post date  
+  - Author role (professor or not)  
+
+### 🔒 Authorization & Access Control
+- All operations require authenticated professor access (via JWT)  
+- Identity verified through token `sub` claim  
+- Fine-grained access control:
+  - Only professors assigned to a course can access or modify its data  
+
+---
+
+## 🏗️ Architecture
+
+### ⚙️ Technical Design
 - Clean architecture with separation of concerns  
-- Repository pattern (DbContext used only in repositories)  
-- Service layer for business logic  
-- DTOs for data transfer  
+- Repository pattern: `DbContext` usage restricted to repositories  
+- Service layer encapsulates business logic  
+- DTOs used for clean and secure data transfer  
+
 
 ---
 
